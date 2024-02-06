@@ -1,5 +1,7 @@
 DECLARE pending_transition_records INT64;
 DECLARE retailer_names ARRAY<STRING>;
+DECLARE counter INT64 DEFAULT 1;
+DECLARE ide STRING DEFAULT "";
 
 SET retailer_names = ['eBay', 'poshmark', 'TheRealReal', 'Etsy', 'Grailed', 'VestiaireCollective', 'Sellier', 'Rebag', 'BOPF', 'TheLuxuryCloset', 'Farfetch', 'HardlyEverWornIt'];
 
@@ -26,6 +28,38 @@ DO
 
     INSERT INTO `phia-373523.inventory_dev.product_transition`
     SELECT * FROM `product_helper`; 
+    
+    IF retailer_name.value = 'eBay' THEN
+        SET counter = 1; 
+        LOOP
+          IF NOT EXISTS(SELECT id FROM`phia-373523.inventory_dev.DummyTest` WHERE partition_index IS NULL AND secondhand_retailer='eBay' ORDER BY id ASC LIMIT 1) THEN 
+             LEAVE;
+          END IF;
+          SET ide = (SELECT id FROM`phia-373523.inventory_dev.DummyTest` WHERE partition_index IS NULL AND secondhand_retailer='eBay' ORDER BY id ASC LIMIT 1);
+          UPDATE `phia-373523.inventory_dev.DummyTest` SET partition_index = counter WHERE id = ide;
+          SET counter=counter+1;
+        END LOOP;
+    ELSEIF retailer_name.value = 'poshmark' THEN
+        SET counter = 45000001;
+        LOOP
+          IF NOT EXISTS(SELECT id FROM`phia-373523.inventory_dev.DummyTest` WHERE partition_index IS NULL AND secondhand_retailer='poshmark' ORDER BY id ASC LIMIT 1) THEN 
+             LEAVE;
+          END IF;
+          SET ide = (SELECT id FROM`phia-373523.inventory_dev.DummyTest` WHERE partition_index IS NULL AND secondhand_retailer='poshmark' ORDER BY id ASC LIMIT 1);
+          UPDATE `phia-373523.inventory_dev.DummyTest` SET partition_index = counter WHERE id = ide;
+          SET counter=counter+1;
+        END LOOP;
+    ELSE
+        SET counter = 135000001;
+        LOOP
+          IF NOT EXISTS(SELECT id FROM`phia-373523.inventory_dev.DummyTest` WHERE partition_index IS NULL AND secondhand_retailer!='eBay' AND secondhand_retailer!='poshmark' ORDER BY id ASC LIMIT 1) THEN 
+             LEAVE;
+          END IF;
+          SET ide = (SELECT id FROM`phia-373523.inventory_dev.DummyTest` WHERE partition_index IS NULL AND secondhand_retailer!='eBay' AND secondhand_retailer!='poshmark' ORDER BY id ASC LIMIT 1);
+          UPDATE `phia-373523.inventory_dev.DummyTest` SET partition_index = counter WHERE id = ide;
+          SET counter=counter+1;
+        END LOOP;
+    END IF;
   
     DELETE FROM `phia-373523.inventory_dev.daily_feed` WHERE secondhand_retailer = retailer_name.value;
     DROP TABLE IF EXISTS `product_helper`;
